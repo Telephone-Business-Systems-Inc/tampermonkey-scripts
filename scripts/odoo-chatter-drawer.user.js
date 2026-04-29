@@ -1,0 +1,277 @@
+// ==UserScript==
+// @name         Odoo: Chatter Drawer Management
+// @namespace    https://telephone-business-systems-inc.odoo.com/odoo
+// @version      1.0.0
+// @description  control the display of the Odoo chatter portion of the screen when reviewing detailed records
+// @author       Roberto PORFIRIO
+// @match        https://*.odoo.com/odoo/*
+// @updateURL    
+// @downloadURL  
+// @grant        none
+// ==/UserScript== 
+
+(function () {
+  'use strict';
+
+  const BTN_ID = 'tm-chatter-drawer-btn';
+  const BACKDROP_ID = 'tm-chatter-backdrop';
+  const MAX_DRAWER_WIDTH = 600;
+  const KEY_STATE = 'odoo_chatter_state';
+  const KEY_LAST = 'odoo_chatter_last_visible';
+
+  let currentChatter = null;
+  let drawerWidth = 420;
+
+  function getChatter() {
+    return document.querySelector('.o-mail-ChatterContainer');
+  }
+
+  function getFormSheet() {
+    return document.querySelector('.o_form_sheet_bg');
+  }
+
+  function getBackdrop() {
+    return document.getElementById(BACKDROP_ID);
+  }
+
+  function getButton() {
+    return document.getElementById(BTN_ID);
+  }
+
+  function getState() {
+    return sessionStorage.getItem(KEY_STATE) || 'closed';
+  }
+
+  function getLastVisible() {
+    return sessionStorage.getItem(KEY_LAST) || 'drawer';
+  }
+
+  function saveState(state) {
+    sessionStorage.setItem(KEY_STATE, state);
+    if (state !== 'closed') {
+      sessionStorage.setItem(KEY_LAST, state);
+    }
+  }
+
+  function expandFormSheet() {
+    const sheet = getFormSheet();
+    if (!sheet) return;
+    sheet.style.flex = '1 1 100%';
+    sheet.style.maxWidth = '100%';
+  }
+
+  function releaseFormSheet() {
+    const sheet = getFormSheet();
+    if (!sheet) return;
+    sheet.style.flex = '';
+    sheet.style.maxWidth = '';
+  }
+
+  function clearDrawerStyles(chatter) {
+    Object.assign(chatter.style, {
+      position: '',
+      top: '',
+      right: '',
+      width: '',
+      height: '',
+      zIndex: '',
+      overflowY: '',
+      background: '',
+      boxShadow: '',
+      transform: '',
+      transition: '',
+      display: '',
+    });
+  }
+
+  function setButtonAppearance(btn, state) {
+    if (state === 'closed') {
+      btn.textContent = 'Show Chatter';
+      btn.className = 'btn btn-primary';
+    } else if (state === 'drawer') {
+      btn.textContent = 'Pin Chatter';
+      btn.className = 'btn btn-secondary';
+    } else {
+      btn.textContent = 'Hide Chatter';
+      btn.className = 'btn btn-secondary';
+    }
+  }
+
+  function updateButton(state) {
+    const btn = getButton();
+    if (btn) setButtonAppearance(btn, state);
+  }
+
+  function transitionTo(newState) {
+    const chatter = getChatter();
+    if (!chatter) return;
+
+    const prevState = getState();
+    saveState(newState);
+    updateButton(newState);
+
+    const backdrop = getBackdrop();
+
+    if (newState === 'drawer') {
+      chatter.style.display = '';
+      Object.assign(chatter.style, {
+        position: 'fixed',
+        top: '0',
+        right: '0',
+        width: drawerWidth + 'px',
+        height: '100%',
+        zIndex: '1050',
+        overflowY: 'auto',
+        background: 'var(--o-view-background-color, #ffffff)',
+        boxShadow: '-4px 0 16px rgba(0,0,0,0.15)',
+        transform: 'translateX(100%)',
+        transition: 'none',
+      });
+      expandFormSheet();
+      if (backdrop) backdrop.style.display = 'block';
+      requestAnimationFrame(() => {
+        chatter.style.transition = 'transform 200ms ease';
+        chatter.style.transform = 'translateX(0)';
+      });
+
+    } else if (newState === 'pinned') {
+      clearDrawerStyles(chatter);
+      releaseFormSheet();
+      if (backdrop) backdrop.style.display = 'none';
+
+    } else {
+      if (backdrop) backdrop.style.display = 'none';
+      if (prevState === 'drawer') {
+        chatter.style.transition = 'transform 200ms ease';
+        chatter.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (getState() === 'closed') {
+            clearDrawerStyles(chatter);
+            chatter.style.display = 'none';
+            expandFormSheet();
+          }
+        }, 210);
+      } else {
+        chatter.style.display = 'none';
+        expandFormSheet();
+      }
+    }
+  }
+
+  function onButtonClick() {
+    const state = getState();
+    if (state === 'closed') transitionTo('drawer');
+    else if (state === 'drawer') transitionTo('pinned');
+    else transitionTo('closed');
+  }
+
+  function onAltC() {
+    const state = getState();
+    transitionTo(state === 'closed' ? getLastVisible() : 'closed');
+  }
+
+  function onAltX() {
+    const state = getState();
+    if (state === 'drawer') transitionTo('pinned');
+    else if (state === 'pinned') transitionTo('drawer');
+  }
+
+  function injectBackdrop() {
+    if (getBackdrop()) return;
+    const backdrop = document.createElement('div');
+    backdrop.id = BACKDROP_ID;
+    Object.assign(backdrop.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.25)',
+      zIndex: '1049',
+      display: 'none',
+    });
+    backdrop.addEventListener('click', () => transitionTo('closed'));
+    document.body.appendChild(backdrop);
+  }
+
+  function injectButton() {
+    if (getButton()) return;
+    const btn = document.createElement('button');
+    btn.id = BTN_ID;
+    btn.title = 'Cycle state | Alt+C: toggle | Alt+X: swap mode';
+    Object.assign(btn.style, {
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      zIndex: '9999',
+    });
+    setButtonAppearance(btn, getState());
+    btn.addEventListener('click', onButtonClick);
+    document.body.appendChild(btn);
+  }
+
+  function injectKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (!e.altKey || e.ctrlKey || !e.shiftKey || e.metaKey) return;
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        onAltC();
+      } else if (e.key === 'x' || e.key === 'X') {
+        e.preventDefault();
+        onAltX();
+      }
+    });
+  }
+
+  function setupChatter(chatter) {
+    requestAnimationFrame(() => {
+      const rect = chatter.getBoundingClientRect();
+      drawerWidth = rect.width > 0
+        ? Math.min(Math.round(rect.width), MAX_DRAWER_WIDTH)
+        : 420;
+
+      const saved = getState();
+      if (saved === 'drawer') {
+        transitionTo('drawer');
+      } else if (saved === 'pinned') {
+        releaseFormSheet();
+        updateButton('pinned');
+      } else {
+        chatter.style.display = 'none';
+        expandFormSheet();
+        updateButton('closed');
+      }
+    });
+  }
+
+  function init(chatter) {
+    currentChatter = chatter;
+    setupChatter(chatter);
+    injectBackdrop();
+    injectButton();
+  }
+
+  function teardown() {
+    currentChatter = null;
+    const btn = getButton();
+    if (btn) btn.remove();
+    const backdrop = getBackdrop();
+    if (backdrop) backdrop.remove();
+  }
+
+  injectKeyboardShortcuts();
+
+  const observer = new MutationObserver(() => {
+    const chatter = getChatter();
+    if (chatter && chatter !== currentChatter) {
+      init(chatter);
+    } else if (!chatter && currentChatter) {
+      teardown();
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  const chatter = getChatter();
+  if (chatter) init(chatter);
+})();
