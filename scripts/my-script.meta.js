@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Script
 // @namespace    https://github.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/
-// @version      1.0.8
+// @version      1.0.9
 // @description  What this script does
 // @author       Roberto PORFIRIO
 // @match        https://example.com/*
