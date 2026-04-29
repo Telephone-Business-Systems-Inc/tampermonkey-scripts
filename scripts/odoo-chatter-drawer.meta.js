@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Odoo: Chatter Drawer Management
 // @namespace    https://telephone-business-systems-inc.odoo.com/odoo
-// @version      1.0.0
+// @version      1.1.0
 // @description  control the display of the Odoo chatter portion of the screen when reviewing detailed records
 // @author       Roberto PORFIRIO
 // @match        https://*.odoo.com/odoo/*
 // @updateURL    https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.meta.js
 // @downloadURL  https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.user.js
 // @grant        none
-// ==/UserScript== 
+// ==/UserScript==
