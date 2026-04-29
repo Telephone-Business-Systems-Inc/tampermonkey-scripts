@@ -5,7 +5,7 @@
 // @description  control the display of the Odoo chatter portion of the screen when reviewing detailed records
 // @author       Roberto PORFIRIO
 // @match        https://*.odoo.com/odoo/*
-// @updateURL    
-// @downloadURL  
+// @updateURL    https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.meta.js
+// @downloadURL  https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.user.js
 // @grant        none
 // ==/UserScript== 
