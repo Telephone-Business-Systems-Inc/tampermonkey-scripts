@@ -1,26 +1,41 @@
 // ==UserScript==
 // @name         Odoo: Chatter Drawer Management
 // @namespace    https://telephone-business-systems-inc.odoo.com/odoo
-// @version      1.0.0
+// @version      1.1.0
 // @description  control the display of the Odoo chatter portion of the screen when reviewing detailed records
 // @author       Roberto PORFIRIO
 // @match        https://*.odoo.com/odoo/*
 // @updateURL    https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.meta.js
 // @downloadURL  https://raw.githubusercontent.com/Telephone-Business-Systems-Inc/tampermonkey-scripts/refs/heads/main/scripts/odoo-chatter-drawer.user.js
 // @grant        none
-// ==/UserScript== 
+// ==/UserScript==
 
 (function () {
   'use strict';
 
   const BTN_ID = 'tm-chatter-drawer-btn';
   const BACKDROP_ID = 'tm-chatter-backdrop';
-  const MAX_DRAWER_WIDTH = 600;
   const KEY_STATE = 'odoo_chatter_state';
   const KEY_LAST = 'odoo_chatter_last_visible';
 
-  let currentChatter = null;
+  // --- Drawer width (used in drawer/floating mode) ---
+  const MAX_DRAWER_WIDTH = 600;
   let drawerWidth = 420;
+
+  // --- Pinned width: clamp(MIN, viewport * PCT, MAX) ---
+  // Evaluated at transition time so it responds to window resizes between navigations.
+  const MIN_PINNED_WIDTH = 320;
+  const PINNED_WIDTH_PCT = 0.28;
+  const MAX_PINNED_WIDTH = 480;
+
+  function getPinnedWidth() {
+    return Math.min(
+      MAX_PINNED_WIDTH,
+      Math.max(MIN_PINNED_WIDTH, Math.round(window.innerWidth * PINNED_WIDTH_PCT))
+    );
+  }
+
+  let currentChatter = null;
 
   function getChatter() {
     return document.querySelector('.o-mail-ChatterContainer');
@@ -67,6 +82,7 @@
     sheet.style.maxWidth = '';
   }
 
+  // Strips all script-applied styles — used when leaving drawer mode entirely.
   function clearDrawerStyles(chatter) {
     Object.assign(chatter.style, {
       position: '',
@@ -81,7 +97,19 @@
       transform: '',
       transition: '',
       display: '',
+      flex: '',
+      maxWidth: '',
     });
+  }
+
+  // Applies a viewport-aware width constraint for pinned (inline) mode.
+  // Uses clearDrawerStyles first to remove any leftover drawer positioning,
+  // then constrains the chatter column without affecting its flow in the layout.
+  function setPinnedStyles(chatter) {
+    clearDrawerStyles(chatter);
+    const width = getPinnedWidth();
+    chatter.style.flex = '0 0 ' + width + 'px';
+    chatter.style.maxWidth = width + 'px';
   }
 
   function setButtonAppearance(btn, state) {
@@ -135,7 +163,7 @@
       });
 
     } else if (newState === 'pinned') {
-      clearDrawerStyles(chatter);
+      setPinnedStyles(chatter);
       releaseFormSheet();
       if (backdrop) backdrop.style.display = 'none';
 
@@ -152,6 +180,7 @@
           }
         }, 210);
       } else {
+        clearDrawerStyles(chatter);
         chatter.style.display = 'none';
         expandFormSheet();
       }
@@ -198,7 +227,7 @@
     if (getButton()) return;
     const btn = document.createElement('button');
     btn.id = BTN_ID;
-    btn.title = 'Cycle state | Alt+C: toggle | Alt+X: swap mode';
+    btn.title = 'Cycle state | Alt+Shift+C: toggle | Alt+Shift+X: swap mode';
     Object.assign(btn.style, {
       position: 'fixed',
       bottom: '20px',
@@ -234,6 +263,7 @@
       if (saved === 'drawer') {
         transitionTo('drawer');
       } else if (saved === 'pinned') {
+        setPinnedStyles(chatter);
         releaseFormSheet();
         updateButton('pinned');
       } else {
