@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Script
 // @namespace    https://github.com/YOUR_USERNAME/tampermonkey-scripts
-// @version      1.0.1
+// @version      1.0.2
 // @description  What this script does
 // @author       Your Name
 // @match        https://example.com/*
